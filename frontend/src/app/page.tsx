@@ -7,9 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
 import { Send, ChevronDown, ChevronUp } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import dotenv from "dotenv"
-
-dotenv.config()
+import Markdown from "react-markdown"
 
 type ToolExecution = {
   name: string
@@ -119,7 +117,6 @@ export default function Home() {
 
           try {
             const chunk = JSON.parse(line)
-            console.log("Chunk received:", chunk)
 
             // Process different chunk types
             if (chunk.type === "tool_name") {
@@ -130,7 +127,6 @@ export default function Home() {
             else if (chunk.type === "tool_args") {
               // Parse the content directly - it should be the actual arguments
               tempToolArgs = chunk.content
-              console.log("Parsed tool args:", tempToolArgs)
 
               // Show the tool in progress
               if (tempToolName) {
@@ -285,7 +281,7 @@ export default function Home() {
           >
             <div className="flex items-start gap-2 max-w-xs">
               {message.sender === "assistant" && (
-                <Avatar className="h-8 w-8 bg-primary text-white flex items-center justify-center mt-1">
+                <Avatar className="h-8 w-8 bg-primary text-white flex items-center justify-center">
                   <span className="text-xs">AI</span>
                 </Avatar>
               )}
@@ -327,14 +323,18 @@ export default function Home() {
 
                 <Card className={`p-1 ${message.sender === "user" ? "bg-primary text-primary-foreground" : "bg-white"}`}>
                   <CardContent className="p-1">
-                    <p className="text-sm">{message.text}</p>
+                    <p className="text-sm text-justify">
+                      <Markdown>
+                        {message.text}
+                      </Markdown>
+                    </p>
                   </CardContent>
                 </Card>
 
               </div>
 
               {message.sender === "user" && (
-                <Avatar className="h-8 w-8 bg-gray-600 text-white flex items-center justify-center mt-1">
+                <Avatar className="h-8 w-8 bg-gray-600 text-white flex items-center justify-center">
                   <span className="text-xs">U</span>
                 </Avatar>
               )}
@@ -391,7 +391,11 @@ export default function Home() {
                 {typingMessage && (
                   <Card className="p-1 bg-white">
                     <CardContent className="p-1">
-                      <p className="text-sm">{typingMessage}</p>
+                      <p className="text-sm text-justify">
+                        <Markdown>
+                          {typingMessage}
+                        </Markdown>
+                      </p>
                     </CardContent>
                   </Card>
                 )}
