@@ -31,7 +31,8 @@ export default function Home() {
   const [typingMessage, setTypingMessage] = useState("")
   const [currentTools, setCurrentTools] = useState<ToolExecution[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [isOpen, setIsOpen] = useState<boolean>(true)
+  const [openStates, setOpenStates] = useState<Record<number, boolean>>({})
+  const [currentToolsOpen, setCurrentToolsOpen] = useState<boolean>(true)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -39,9 +40,15 @@ export default function Home() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, typingMessage, currentTools, isOpen])
+  }, [messages, currentTools, openStates, currentToolsOpen])
 
 
+  const toggleMessageTools = (messageId: number) => {
+    setOpenStates(current => ({
+      ...current,
+      [messageId]: !(current[messageId] ?? true)
+    }))
+  }
 
   const callChatAPI = async (userMessage: string) => {
     setIsLoading(true)
@@ -151,9 +158,6 @@ export default function Home() {
 
                 // Update the UI
                 setCurrentTools([...toolsCollected])
-                if (!isOpen && toolsCollected.length === 1) {
-                  setIsOpen(true)
-                }
               }
             }
             else if (chunk.type === "tool_content") {
@@ -199,20 +203,42 @@ export default function Home() {
 
       // Add the final answer with tools to the messages
       if (finalAnswer) {
+
+        const newMessageId = messages.length + 2
+
         setMessages(current => [...current, {
-          id: current.length + 1,
+          id: newMessageId,
           text: finalAnswer,
           sender: "assistant",
           tools: toolsCollected.length > 0 ? toolsCollected : undefined
         }])
+
+        if (toolsCollected.length > 0) {
+          setOpenStates(current => ({
+            ...current,
+            [newMessageId]: true
+          }))
+        }
+
       } else {
         // Fallback message
+
+        const newMessageId = messages.length + 2
+
         setMessages(current => [...current, {
-          id: current.length + 1,
+          id: newMessageId,
           text: `I have processed your request, but could not generate a proper response.`,
           sender: "assistant",
           tools: toolsCollected.length > 0 ? toolsCollected : undefined
         }])
+
+        if (toolsCollected.length > 0) {
+          setOpenStates(current => ({
+            ...current,
+            [newMessageId]: true
+          }))
+        }
+
       }
     } catch (error) {
       console.error("Error calling chat API:", error)
@@ -233,7 +259,7 @@ export default function Home() {
     if (newMessage.trim() && !isLoading) {
       // Add user message to chat
       setMessages(current => [...current, {
-        id: current.length + 1,
+        id: messages.length + 1,
         text: newMessage,
         sender: "user"
       }])
@@ -289,10 +315,10 @@ export default function Home() {
               <div className="flex flex-col">
 
                 {message.tools && message.tools.length > 0 && (
-                  <Collapsible className="mb-1 w-full" open={isOpen} onOpenChange={setIsOpen}>
+                  <Collapsible className="mb-1 w-full" open={openStates[message.id]} onOpenChange={() => toggleMessageTools(message.id)}>
                     <CollapsibleTrigger asChild className="flex items-center text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
                       <div className="flex items-center gap-1">
-                        {isOpen ? (
+                        {(openStates[message.id] ?? true) ? (
                           <><ChevronUp className="h-3 w-3" /><span>Hide execution details ({message.tools.length})</span></>
                         ) : (
                           <><ChevronDown className="h-3 w-3" /><span>Show execution details ({message.tools.length})</span></>
@@ -305,13 +331,13 @@ export default function Home() {
                           <div key={index} className="mb-2 pb-2 border-b border-gray-200 last:border-0">
                             <div className="font-bold">Tool: {tool.name}</div>
                             <div className="mt-1">
-                              <div>Arguments:</div>
+                              <div className="font-bold">Arguments:</div>
                               <pre className="bg-gray-200 p-1 rounded mt-1 overflow-x-auto">
                                 {formatToolArgs(tool.args)}
                               </pre>
                             </div>
                             <div className="mt-1">
-                              <div>Result:</div>
+                              <div className="font-bold">Result:</div>
                               <div className="bg-gray-200 p-1 rounded mt-1">{tool.content}</div>
                             </div>
                           </div>
@@ -323,11 +349,11 @@ export default function Home() {
 
                 <Card className={`p-1 ${message.sender === "user" ? "bg-primary text-primary-foreground" : "bg-white"}`}>
                   <CardContent className="p-1">
-                    <p className="text-sm text-justify">
+                    <div className="text-sm text-justify">
                       <Markdown>
                         {message.text}
                       </Markdown>
-                    </p>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -354,10 +380,10 @@ export default function Home() {
 
 
                 {currentTools.length > 0 && (
-                  <Collapsible className="mb-1 w-full" open={isOpen} onOpenChange={setIsOpen}>
+                  <Collapsible className="mb-1 w-full" open={currentToolsOpen} onOpenChange={setCurrentToolsOpen}>
                     <CollapsibleTrigger asChild className="flex items-center text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
                       <div className="flex items-center gap-1">
-                        {isOpen ? (
+                        {currentToolsOpen ? (
                           <><ChevronUp className="h-3 w-3" /><span>Hide execution details ({currentTools.length})</span></>
                         ) : (
                           <><ChevronDown className="h-3 w-3" /><span>Show execution details ({currentTools.length})</span></>
@@ -370,13 +396,13 @@ export default function Home() {
                           <div key={index} className="mb-2 pb-2 border-b border-gray-200 last:border-0">
                             <div className="font-bold">Tool: {tool.name}</div>
                             <div className="mt-1">
-                              <div>Arguments:</div>
+                              <div className="font-bold">Arguments:</div>
                               <pre className="bg-gray-200 p-1 rounded mt-1 overflow-x-auto">
                                 {formatToolArgs(tool.args)}
                               </pre>
                             </div>
                             <div className="mt-1">
-                              <div>Result:</div>
+                              <div className="font-bold">Result:</div>
                               <div className="bg-gray-200 p-1 rounded mt-1">
                                 {tool.content}
                               </div>
@@ -391,11 +417,11 @@ export default function Home() {
                 {typingMessage && (
                   <Card className="p-1 bg-white">
                     <CardContent className="p-1">
-                      <p className="text-sm text-justify">
+                      <div className="text-sm text-justify">
                         <Markdown>
                           {typingMessage}
                         </Markdown>
-                      </p>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
