@@ -8,7 +8,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 SERVER_API_KEY = os.getenv("SERVER_API_KEY")
 
-OPENAI_MODEL = "gpt-4o"
+PORT = os.getenv("PORT")
+
+OPENAI_MODEL = "gpt-4o-mini"
 
 API_VERSION = "v0"
 
